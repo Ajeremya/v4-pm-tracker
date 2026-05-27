@@ -2,1153 +2,569 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="V4 Tracker">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Venus4 NPI — PM Tracker</title>
-
-<!-- ═══════════════════════════════════════════════════════════════
-     STEP 1: Paste your Firebase config here
-     Go to: console.firebase.google.com → your project →
-     Project Settings → Your apps → SDK setup → Config
-     ═══════════════════════════════════════════════════════════════ -->
-<script>
-  const FIREBASE_CONFIG = {
-    apiKey:            "PASTE_YOUR_apiKey_HERE",
-    authDomain:        "PASTE_YOUR_authDomain_HERE",
-    projectId:         "PASTE_YOUR_projectId_HERE",
-    storageBucket:     "PASTE_YOUR_storageBucket_HERE",
-    messagingSenderId: "PASTE_YOUR_messagingSenderId_HERE",
-    appId:             "PASTE_YOUR_appId_HERE",
-    databaseURL:       "PASTE_YOUR_databaseURL_HERE",
-  };
-  // Set to false once you've pasted your config above
-  const FIREBASE_NOT_CONFIGURED = Object.values(FIREBASE_CONFIG).some(v => v.startsWith("PASTE_"));
-</script>
-<!-- ═══════════════════════════════════════════════════════════════ -->
-
-<!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
-
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-html,body{height:100%;overscroll-behavior:none;font-family:'DM Sans','Helvetica Neue',sans-serif;}
-:root{
-  --bg:#0e0e10;--bg2:#18181b;--bg3:#1f1f23;--bg4:#27272c;
-  --border:#2e2e35;--border2:#3a3a44;
-  --text:#f0f0f2;--text2:#a0a0b0;--text3:#606075;
-  --green:#1D9E75;--red:#E24B4A;--amber:#EF9F27;--blue:#4fa3e8;
-  --card:#18181b;--header:#111114;
-  --inp-bg:#1f1f23;--inp-br:#2e2e35;
-}
-body.light{
-  --bg:#f5f4f0;--bg2:#ffffff;--bg3:#eeeee8;--bg4:#e2e2d8;
-  --border:#ddddd0;--border2:#c8c8b8;
-  --text:#1a1a1a;--text2:#555;--text3:#999;
-  --card:#ffffff;--header:#1a1a1a;
-  --inp-bg:#fafaf6;--inp-br:#ddddd0;
-}
-body{background:var(--bg);color:var(--text);transition:background .2s,color .2s;}
-::-webkit-scrollbar{width:4px;height:4px;}
-::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px;}
-::-webkit-scrollbar-track{background:transparent;}
-button{font-family:inherit;cursor:pointer;}
-input,select,textarea{font-family:inherit;outline:none;background:var(--inp-bg);color:var(--text);border:1px solid var(--inp-br);border-radius:8px;font-size:13px;}
-input::placeholder,textarea::placeholder{color:var(--text3);}
-select option{background:var(--bg3);color:var(--text);}
-
-/* SYNC BANNER */
-#sync-banner{display:none;position:fixed;top:0;left:0;right:0;z-index:500;padding:10px 20px;font-size:13px;font-weight:500;text-align:center;}
-#sync-banner.syncing{display:block;background:#1D9E75;color:#fff;}
-#sync-banner.error  {display:block;background:#E24B4A;color:#fff;}
-#sync-banner.offline{display:block;background:#EF9F27;color:#fff;}
-
-/* SETUP OVERLAY */
-#setup-overlay{position:fixed;inset:0;z-index:600;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px;}
-.setup-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px 32px;max-width:520px;width:100%;}
-.setup-step{display:flex;gap:12px;margin-bottom:14px;align-items:flex-start;}
-.step-num{width:24px;height:24px;border-radius:50%;background:#1D9E75;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
-.step-body{font-size:13px;color:var(--text2);line-height:1.6;}
-.step-body a{color:var(--blue);}
-.step-body code{background:var(--bg3);padding:1px 6px;border-radius:4px;font-family:'DM Mono',monospace;font-size:12px;color:var(--text);}
-.setup-inp{width:100%;padding:8px 10px;margin-top:5px;border-radius:8px;font-size:12px;font-family:'DM Mono',monospace;}
-
-/* LAYOUT */
-#app{min-height:100vh;display:flex;flex-direction:column;}
-#header{background:var(--header);border-bottom:1px solid var(--border);padding:0 24px;flex-shrink:0;}
-#header-inner{max-width:1300px;margin:0 auto;height:54px;display:flex;align-items:center;gap:10px;}
-#main{flex:1;max-width:1300px;width:100%;margin:0 auto;padding:18px 24px 36px;}
-.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
-.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px 16px;position:relative;overflow:hidden;}
-.stat-num{font-size:24px;font-weight:600;line-height:1;}
-.stat-lbl{font-size:13px;font-weight:500;margin-top:4px;}
-.stat-sub{font-size:11px;color:var(--text3);margin-top:2px;}
-.filters{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
-.filter-group{display:flex;gap:5px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;}
-.filter-group::-webkit-scrollbar{display:none;}
-.pill{padding:4px 12px;border-radius:20px;font-size:12px;font-weight:500;border:none;cursor:pointer;white-space:nowrap;transition:background .12s,color .12s;}
-.pill.off{background:var(--bg4);color:var(--text2);}
-.pill.on-dark{background:var(--text);color:var(--bg);}
-.board{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
-.col-header{display:flex;align-items:center;gap:7px;margin-bottom:9px;}
-.col-dot{width:7px;height:7px;border-radius:50%;}
-.col-title{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text2);}
-.col-count{margin-left:auto;background:var(--bg4);color:var(--text3);font-size:10px;padding:1px 7px;border-radius:10px;}
-.col-cards{display:flex;flex-direction:column;gap:7px;}
-.col-add{width:100%;margin-top:7px;padding:6px;font-size:12px;border:1px dashed var(--border2);border-radius:8px;background:transparent;color:var(--text3);}
-.col-add:hover{background:var(--bg3);}
-.task-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 13px;cursor:pointer;transition:box-shadow .15s,transform .1s;user-select:none;}
-.task-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.3);transform:translateY(-1px);}
-.tc-top{display:flex;align-items:center;gap:6px;margin-bottom:7px;}
-.prio-dot{width:7px;height:7px;border-radius:50%;margin-left:auto;flex-shrink:0;}
-.tc-title{font-size:13px;font-weight:500;line-height:1.4;margin-bottom:5px;}
-.tc-desc{font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:7px;}
-.tc-meta{display:flex;align-items:center;gap:8px;font-size:11px;}
-.jira-ref{color:var(--blue);font-family:'DM Mono',monospace;}
-.area-tag{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;white-space:nowrap;}
-.site-tag{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;}
-.status-badge{font-size:11px;padding:2px 9px;border-radius:10px;font-weight:600;}
-.list-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
-.list-table{width:100%;border-collapse:collapse;font-size:13px;min-width:580px;}
-.list-table th{padding:9px 13px;text-align:left;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);}
-.list-table td{padding:9px 13px;border-bottom:1px solid var(--border);vertical-align:middle;}
-.list-table tr.data:hover td{background:var(--bg3);cursor:pointer;}
-.table-scroll{overflow-x:auto;}
-.timeline-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;}
-.tl-month{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:9px;}
-.tl-item{display:flex;gap:12px;margin-bottom:9px;padding-left:10px;border-left:3px solid;cursor:pointer;}
-.tl-date{font-size:11px;min-width:62px;padding-top:2px;white-space:nowrap;}
-.tl-body{flex:1;background:var(--bg3);border-radius:8px;padding:8px 11px;}
-#drawer-bg{position:fixed;inset:0;z-index:200;display:none;}
-#drawer-bg.open{display:flex;}
-#drawer{width:420px;background:var(--bg2);height:100%;overflow-y:auto;border-left:1px solid var(--border);padding:22px 20px;margin-left:auto;}
-.drawer-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px;}
-.meta-cell{background:var(--bg3);border-radius:8px;padding:8px 11px;}
-.meta-lbl{font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px;}
-.move-btns{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;}
-.move-btn{padding:4px 11px;border-radius:20px;font-size:12px;background:transparent;font-weight:500;cursor:pointer;}
-.update-item{border-left:2px solid var(--green);padding-left:10px;margin-bottom:10px;}
-.update-date{font-size:10px;color:var(--text3);margin-bottom:2px;}
-.update-text{font-size:13px;color:var(--text2);line-height:1.5;}
-#modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;display:none;align-items:center;justify-content:center;padding:16px;}
-#modal-bg.open{display:flex;}
-.modal-box{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:22px 24px;width:460px;max-height:90vh;overflow-y:auto;}
-.modal-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.form-lbl{display:block;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;margin-top:12px;}
-.form-inp{width:100%;padding:8px 10px;font-size:13px;border-radius:8px;background:var(--inp-bg);color:var(--text);border:1px solid var(--inp-br);}
-#settings-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;display:none;align-items:center;justify-content:center;padding:16px;}
-#settings-bg.open{display:flex;}
-.settings-box{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:22px 24px;width:440px;max-height:88vh;overflow-y:auto;}
-.area-row{display:flex;align-items:center;gap:8px;background:var(--bg3);border-radius:9px;padding:8px 11px;margin-bottom:7px;}
-.area-swatch{width:14px;height:14px;border-radius:4px;flex-shrink:0;}
-.palette-swatch{width:24px;height:24px;border-radius:6px;cursor:pointer;border:2px solid transparent;}
-#mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--bg2);border-top:1px solid var(--border);padding:8px 0 max(8px,env(safe-area-inset-bottom));}
-#mobile-nav{flex-direction:row;}
-.mnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;padding:4px 0;font-size:10px;color:var(--text3);font-weight:500;}
-.mnav-btn.active{color:var(--green);}
-.mnav-btn svg{width:22px;height:22px;}
-.ring-wrap{position:absolute;right:12px;top:10px;}
-
-/* sync dot in header */
-#sync-dot{width:8px;height:8px;border-radius:50%;background:#1D9E75;display:inline-block;margin-right:4px;transition:background .3s;}
-#sync-dot.syncing{background:#EF9F27;animation:pulse .8s infinite;}
-#sync-dot.error{background:#E24B4A;}
-@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
-
-@keyframes spin{to{transform:rotate(360deg)}}
-@media(max-width:700px){
-  .desktop-only{display:none!important;}
-  #mobile-nav{display:flex!important;}
-  .board{grid-template-columns:1fr!important;}
-  .stats-grid{grid-template-columns:1fr 1fr!important;}
-  #main{padding:12px 12px 80px!important;}
-  #drawer{width:100%!important;border-radius:16px 16px 0 0!important;max-height:88vh!important;border-left:none!important;border-top:1px solid var(--border)!important;}
-  #drawer-bg.open{align-items:flex-end!important;}
-  .modal-box{width:96vw!important;padding:18px 16px!important;}
-  .settings-box{width:96vw!important;}
-  #header{padding:0 14px;}
-  #sync-banner{top:54px;}
-}
-@media(min-width:701px){.mobile-only{display:none!important;}}
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #f7f6f3; }
 </style>
 </head>
 <body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
 
-<!-- Setup overlay (shown when Firebase not configured) -->
-<div id="setup-overlay" style="display:none">
-  <div class="setup-card">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
-      <div style="width:32px;height:32px;background:#1D9E75;border-radius:8px;display:flex;align-items:center;justify-content:center">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-      </div>
-      <div>
-        <div style="font-size:16px;font-weight:600">Connect Firebase Sync</div>
-        <div style="font-size:12px;color:var(--text3)">One-time setup — takes ~5 minutes</div>
-      </div>
-    </div>
 
-    <div class="setup-step">
-      <div class="step-num">1</div>
-      <div class="step-body">Go to <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> → <strong>Add project</strong> → name it <code>v4-tracker</code> → disable Google Analytics → Create project</div>
-    </div>
-    <div class="setup-step">
-      <div class="step-num">2</div>
-      <div class="step-body">In your project → click <strong>Realtime Database</strong> (left sidebar) → <strong>Create database</strong> → choose any location → start in <strong>Test mode</strong> → Enable</div>
-    </div>
-    <div class="setup-step">
-      <div class="step-num">3</div>
-      <div class="step-body">Go to <strong>Project Settings</strong> (gear icon) → <strong>Your apps</strong> → click <strong>&lt;/&gt; Web</strong> → register app as <code>v4-tracker</code> → copy the <code>firebaseConfig</code> values</div>
-    </div>
-    <div class="setup-step">
-      <div class="step-num">4</div>
-      <div class="step-body">Paste each value below, then click <strong>Save & Connect</strong></div>
-    </div>
+const INITIAL_TASKS = [
+  { id: 1, title: "Resolve AP2214B 12V rail FPY — root-cause & containment", desc: "MainAux 12V rail failures at Sella. Pending station-level isolation and ECO disposition.", area: "yield", prio: "high", status: "inprogress", due: "2026-06-06", jira: "JP-512", site: "sella", created: "2026-05-20", updates: [] },
+  { id: 2, title: "Close RH_SENSE failure investigation on AP1972D-FDC", desc: "Elevated retest rate; suspected fixture contact issue. Waiting on fixture rework from Sella ATE team.", area: "yield", prio: "high", status: "blocked", due: "2026-06-04", jira: "JP-498", site: "sella", created: "2026-05-18", updates: [] },
+  { id: 3, title: "Validate AS0001-ANT-2 FPY post-TCO recovery", desc: "Antenna boards recovering after TCO. Need 3-day FPY trend confirmation before releasing to production.", area: "yield", prio: "medium", status: "inprogress", due: "2026-06-10", jira: "JP-505", site: "sella", created: "2026-05-22", updates: [] },
+  { id: 4, title: "Sign ECOD-02355 for V4 power board change", desc: "ECO pending NPI Director signature. Flex Austin holds release until signed.", area: "eco", prio: "high", status: "backlog", due: "2026-05-28", jira: "", site: "austin", created: "2026-05-24", updates: [] },
+  { id: 5, title: "Review V4 tester capacity plan Q3–Q4 2026", desc: "FDC-03 and FMB-03 Unified FT flagged as most constrained at Q4 peak. Alignment with Flex Austin needed.", area: "capacity", prio: "medium", status: "inprogress", due: "2026-06-15", jira: "JP-488", site: "austin", created: "2026-05-10", updates: [] },
+  { id: 6, title: "Confirm V4 NPI 50-unit batch milestone status", desc: "Track 50-unit NPI build milestones against production plan. Weekly update to stakeholders.", area: "cross", prio: "medium", status: "inprogress", due: "2026-06-20", jira: "JP-476", site: "austin", created: "2026-05-12", updates: [] },
+  { id: 7, title: "Align Machine Vision spec for AP1972D", desc: "MV rejection rate above target. Need updated acceptance criteria from Quality.", area: "quality", prio: "medium", status: "backlog", due: "2026-06-12", jira: "", site: "sella", created: "2026-05-21", updates: [] },
+  { id: 8, title: "Ramat Hovav data center feasibility — next steps", desc: "Real estate investment opportunity in Negev industrial zone. Follow up on infrastructure & zoning data.", area: "cross", prio: "low", status: "backlog", due: "", jira: "", site: "other", created: "2026-05-15", updates: [] },
+  { id: 9, title: "AP1999B-FPT Flex Austin FPY baseline", desc: "Establish FPY baseline for new station commissioning. Pull first 200-unit ATE session data.", area: "yield", prio: "medium", status: "backlog", due: "2026-06-18", jira: "", site: "austin", created: "2026-05-23", updates: [] },
+  { id: 10, title: "Close IGBT gate de-assertion timing issue", desc: "Thermal Attachment Tester commissioning issue at Flex Austin — gate not de-asserting before verification step. Resolved.", area: "quality", prio: "high", status: "done", due: "2026-05-20", jira: "JP-455", site: "austin", created: "2026-05-05", updates: [{ date: "2026-05-20", text: "Root cause confirmed — sequence timing fixed in firmware. Verified on station." }] },
+];
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">
-      <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px">apiKey</div><input class="setup-inp" id="cfg-apiKey" placeholder="AIzaSy..."></div>
-      <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px">authDomain</div><input class="setup-inp" id="cfg-authDomain" placeholder="xxx.firebaseapp.com"></div>
-      <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px">projectId</div><input class="setup-inp" id="cfg-projectId" placeholder="v4-tracker-xxxxx"></div>
-      <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px">storageBucket</div><input class="setup-inp" id="cfg-storageBucket" placeholder="xxx.appspot.com"></div>
-      <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px">messagingSenderId</div><input class="setup-inp" id="cfg-messagingSenderId" placeholder="123456789"></div>
-      <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px">appId</div><input class="setup-inp" id="cfg-appId" placeholder="1:123:web:abc..."></div>
-      <div style="grid-column:1/-1"><div style="font-size:11px;color:var(--text3);margin-bottom:3px">databaseURL <span style="color:var(--amber)">(find in Realtime Database page)</span></div><input class="setup-inp" id="cfg-databaseURL" placeholder="https://v4-tracker-xxxxx-default-rtdb.firebaseio.com"></div>
-    </div>
-
-    <div style="display:flex;gap:8px;margin-top:18px;align-items:center">
-      <div id="setup-error" style="font-size:12px;color:#E24B4A;flex:1"></div>
-      <button onclick="saveConfig()" style="padding:9px 20px;background:#1D9E75;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer">
-        Save &amp; Connect →
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- Sync banner -->
-<div id="sync-banner"></div>
-
-<div id="app">
-  <div id="header">
-    <div id="header-inner">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div style="width:26px;height:26px;background:#1D9E75;border-radius:6px;display:flex;align-items:center;justify-content:center;">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="12" rx="2" fill="#fff" opacity=".9"/><rect x="9" y="2" width="5" height="7" rx="2" fill="#fff" opacity=".9"/></svg>
-        </div>
-        <span style="font-weight:600;font-size:14px;">Venus4 NPI</span>
-        <span style="color:var(--text3);font-size:13px;">/ PM Tracker</span>
-        <span id="sync-dot" title="Synced"></span>
-      </div>
-      <div style="margin-left:auto;display:flex;gap:6px;align-items:center;" class="desktop-only">
-        <button onclick="setView('board')"    id="vbtn-board"    class="vbtn" style="background:rgba(255,255,255,.1);color:var(--text);border:none;padding:4px 12px;border-radius:6px;font-size:13px;font-weight:500;">Board</button>
-        <button onclick="setView('list')"     id="vbtn-list"     class="vbtn" style="background:transparent;color:var(--text3);border:none;padding:4px 12px;border-radius:6px;font-size:13px;">List</button>
-        <button onclick="setView('timeline')" id="vbtn-timeline" class="vbtn" style="background:transparent;color:var(--text3);border:none;padding:4px 12px;border-radius:6px;font-size:13px;">Timeline</button>
-      </div>
-      <button onclick="openSettings()" class="desktop-only" style="background:transparent;border:1px solid var(--border);color:var(--text2);padding:4px 10px;border-radius:6px;font-size:12px;display:flex;align-items:center;gap:5px;">
-        <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="3"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42"/></svg>
-        Areas
-      </button>
-      <button onclick="toggleTheme()" id="theme-btn" style="background:transparent;border:1px solid var(--border);color:var(--text2);padding:4px 10px;border-radius:6px;font-size:14px;min-width:36px;">☀️</button>
-      <button onclick="openEmailModal()" class="desktop-only" style="background:transparent;border:1px solid var(--border);color:var(--text2);padding:6px 12px;border-radius:6px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:5px;">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 7 10-7"/></svg>
-        From email
-      </button>
-      <button onclick="syncToDo()" id="todo-sync-btn" class="desktop-only" style="background:transparent;border:1px solid var(--border);color:var(--text2);padding:6px 12px;border-radius:6px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:5px;" title="Sync from Microsoft To Do">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-        Sync To Do
-      </button>
-      <button onclick="openModal(null,'backlog')" class="desktop-only" style="background:#1D9E75;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:5px;">
-        <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><line x1="6" y1="1" x2="6" y2="11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="1" y1="6" x2="11" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        Add task
-      </button>
-    </div>
-  </div>
-
-  <div id="main">
-    <div class="stats-grid" id="stats-grid"></div>
-    <div class="filters"    id="filters"></div>
-    <div id="view-container"></div>
-  </div>
-
-  <nav id="mobile-nav">
-    <button class="mnav-btn active" id="mnav-board"    onclick="setView('board')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="18" rx="2"/><rect x="14" y="3" width="7" height="11" rx="2"/></svg>Board</button>
-    <button class="mnav-btn" id="mnav-list"     onclick="setView('list')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1.5" fill="currentColor"/><circle cx="3" cy="12" r="1.5" fill="currentColor"/><circle cx="3" cy="18" r="1.5" fill="currentColor"/></svg>List</button>
-    <button class="mnav-btn" id="mnav-timeline" onclick="setView('timeline')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Timeline</button>
-    <button class="mnav-btn" onclick="openModal(null,'backlog')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Add</button>
-    <button class="mnav-btn" onclick="openSettings()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>Areas</button>
-  </nav>
-</div>
-
-<div id="drawer-bg" onclick="closeDrawer()">
-  <div id="drawer" onclick="event.stopPropagation()"></div>
-</div>
-<div id="modal-bg" onclick="closeModal()">
-  <div class="modal-box" onclick="event.stopPropagation()" id="modal-box"></div>
-</div>
-
-<!-- Email to Task Modal -->
-<div id="email-modal-bg" onclick="closeEmailModal()" style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;display:none;align-items:center;justify-content:center;padding:16px;">
-  <div id="email-modal-box" onclick="event.stopPropagation()" style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:22px 24px;width:560px;max-width:96vw;max-height:90vh;overflow-y:auto;">
-    
-    <!-- Step 1: Paste email -->
-    <div id="email-step-1">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <h3 style="font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px">
-          <span style="font-size:18px">📧</span> Create task from email
-        </h3>
-        <button onclick="closeEmailModal()" style="background:none;border:none;font-size:20px;color:var(--text3);cursor:pointer">×</button>
-      </div>
-      <p style="font-size:12px;color:var(--text3);margin-bottom:14px">Paste any Outlook email below — Claude will extract the task automatically.</p>
-      <textarea id="email-input" placeholder="Paste your email here (subject, body, from/to — the more context the better)..." 
-        style="width:100%;height:180px;padding:10px 12px;font-size:13px;border-radius:8px;resize:vertical;background:var(--inp-bg);color:var(--text);border:1px solid var(--inp-br);line-height:1.5"></textarea>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
-        <span id="email-char-count" style="font-size:11px;color:var(--text3)"></span>
-        <div style="display:flex;gap:8px">
-          <button onclick="closeEmailModal()" style="padding:7px 16px;border:1px solid var(--border2);border-radius:8px;background:transparent;font-size:13px;color:var(--text2);cursor:pointer">Cancel</button>
-          <button onclick="analyzeEmail()" id="analyze-btn"
-            style="padding:7px 18px;background:#4fa3e8;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-            Analyze email
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Step 2: Loading -->
-    <div id="email-step-2" style="display:none;text-align:center;padding:40px 20px">
-      <div id="email-spinner" style="width:40px;height:40px;border:3px solid var(--border2);border-top-color:#4fa3e8;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px"></div>
-      <div style="font-size:14px;font-weight:500;margin-bottom:6px">Analyzing email…</div>
-      <div style="font-size:12px;color:var(--text3)">Claude is extracting task details</div>
-    </div>
-
-    <!-- Step 3: Review extracted task -->
-    <div id="email-step-3" style="display:none">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-        <h3 style="font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px">
-          <span style="color:#1D9E75;font-size:16px">✓</span> Review extracted task
-        </h3>
-        <button onclick="closeEmailModal()" style="background:none;border:none;font-size:20px;color:var(--text3);cursor:pointer">×</button>
-      </div>
-      <div style="background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:var(--text3)">
-        📧 <span id="email-source-preview" style="font-style:italic"></span>
-      </div>
-      <label class="form-lbl">Title</label>
-      <input class="form-inp" id="em-title" placeholder="Task title">
-      <label class="form-lbl">Description</label>
-      <textarea class="form-inp" id="em-desc" style="height:80px;resize:vertical"></textarea>
-      <div class="modal-row">
-        <div><label class="form-lbl">Area</label><select class="form-inp" id="em-area"></select></div>
-        <div><label class="form-lbl">Priority</label><select class="form-inp" id="em-prio">
-          <option value="high">High</option>
-          <option value="medium" selected>Medium</option>
-          <option value="low">Low</option>
-        </select></div>
-        <div><label class="form-lbl">Status</label><select class="form-inp" id="em-status">
-          <option value="backlog" selected>Backlog</option>
-          <option value="inprogress">In Progress</option>
-          <option value="blocked">Blocked</option>
-          <option value="done">Done</option>
-        </select></div>
-        <div><label class="form-lbl">Site</label><select class="form-inp" id="em-site">
-          <option value="sella">Sella</option>
-          <option value="austin">Austin</option>
-          <option value="other">Other</option>
-        </select></div>
-        <div><label class="form-lbl">Due date</label><input class="form-inp" id="em-due" type="date"></div>
-        <div><label class="form-lbl">Jira ticket</label><input class="form-inp" id="em-jira" placeholder="JP-###" style="font-family:'DM Mono',monospace"></div>
-      </div>
-      <div style="display:flex;gap:8px;margin-top:18px;justify-content:space-between;align-items:center">
-        <button onclick="goBackToEmail()" style="padding:7px 12px;border:none;border-radius:8px;background:transparent;font-size:12px;color:var(--text3);cursor:pointer">← Try again</button>
-        <div style="display:flex;gap:8px">
-          <button onclick="closeEmailModal()" style="padding:7px 16px;border:1px solid var(--border2);border-radius:8px;background:transparent;font-size:13px;color:var(--text2);cursor:pointer">Cancel</button>
-          <button onclick="saveEmailTask()" style="padding:7px 18px;background:#1D9E75;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer">
-            + Save task
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Error state -->
-    <div id="email-step-error" style="display:none;text-align:center;padding:30px 20px">
-      <div style="font-size:32px;margin-bottom:12px">⚠️</div>
-      <div style="font-size:14px;font-weight:500;margin-bottom:6px">Could not analyze email</div>
-      <div id="email-error-msg" style="font-size:12px;color:var(--text3);margin-bottom:16px"></div>
-      <button onclick="goBackToEmail()" style="padding:7px 16px;background:var(--bg4);color:var(--text2);border:none;border-radius:8px;font-size:13px;cursor:pointer">← Try again</button>
-    </div>
-
-  </div>
-</div>
-
-<div id="settings-bg" onclick="closeSettings()">
-  <div class="settings-box" onclick="event.stopPropagation()" id="settings-box"></div>
-</div>
-
-<script>
-// ── CONSTANTS ────────────────────────────────────────────────────────────────
-const SK_THEME  = "v4pm_theme_v3";
-const SK_CONFIG = "v4pm_firebase_config";
-
-const PRIO_COLOR = {high:"#E24B4A", medium:"#EF9F27", low:"#4fa3e8"};
 const COLS = [
-  {id:"backlog",    label:"Backlog",     color:"#606075"},
-  {id:"inprogress", label:"In Progress", color:"#4fa3e8"},
-  {id:"blocked",   label:"Blocked",     color:"#E24B4A"},
-  {id:"done",      label:"Done",        color:"#1D9E75"},
-];
-const STATUS_DARK  = {backlog:["#27272c","#606075"],inprogress:["#0d2a40","#6bb8f7"],blocked:["#3a1010","#e06060"],done:["#0f3d2a","#4ecca3"]};
-const STATUS_LIGHT = {backlog:["#f0f0f0","#888"],inprogress:["#E6F1FB","#185FA5"],blocked:["#FCEBEB","#A32D2D"],done:["#E1F5EE","#0F6E56"]};
-const STATUS_LABEL = {backlog:"Backlog",inprogress:"In Progress",blocked:"Blocked",done:"Done"};
-const SITES = ["sella","austin","other"];
-
-const PALETTE = [
-  {bg:"#0f3d2a",fg:"#4ecca3",lbg:"#E1F5EE",lfg:"#0F6E56"},
-  {bg:"#0d2a40",fg:"#6bb8f7",lbg:"#E6F1FB",lfg:"#185FA5"},
-  {bg:"#3a2500",fg:"#f0a840",lbg:"#FAEEDA",lfg:"#854F0B"},
-  {bg:"#3a1028",fg:"#e07aa0",lbg:"#FBEAF0",lfg:"#993556"},
-  {bg:"#1e1040",fg:"#a08cf0",lbg:"#EEEDFE",lfg:"#534AB7"},
-  {bg:"#222220",fg:"#a0a090",lbg:"#F1EFE8",lfg:"#5F5E5A"},
-  {bg:"#2a1500",fg:"#f08040",lbg:"#FAEEDA",lfg:"#993c00"},
-  {bg:"#001a2a",fg:"#40c0f0",lbg:"#e0f4fb",lfg:"#006080"},
-  {bg:"#1a2a00",fg:"#90d040",lbg:"#eaf3de",lfg:"#3B6D11"},
-  {bg:"#2a0010",fg:"#f06080",lbg:"#fce8ec",lfg:"#900030"},
+  { id: "backlog",    label: "Backlog",     color: "#888780" },
+  { id: "inprogress", label: "In Progress", color: "#378ADD" },
+  { id: "blocked",   label: "Blocked",     color: "#E24B4A" },
+  { id: "done",      label: "Done",        color: "#1D9E75" },
 ];
 
-const DEFAULT_AREAS = [
-  {id:"yield",   label:"ATE Yield",        ...PALETTE[0]},
-  {id:"eco",     label:"ECO / Change",     ...PALETTE[1]},
-  {id:"supply",  label:"Supply Chain",     ...PALETTE[2]},
-  {id:"quality", label:"Quality",          ...PALETTE[3]},
-  {id:"capacity",label:"Tester Capacity",  ...PALETTE[4]},
-  {id:"cross",   label:"Cross-functional", ...PALETTE[5]},
-];
+const AREAS = {
+  yield:    { label: "ATE Yield",        bg: "#E1F5EE", fg: "#0F6E56" },
+  eco:      { label: "ECO / Change",     bg: "#E6F1FB", fg: "#185FA5" },
+  supply:   { label: "Supply Chain",     bg: "#FAEEDA", fg: "#854F0B" },
+  quality:  { label: "Quality",          bg: "#FBEAF0", fg: "#993556" },
+  capacity: { label: "Tester Capacity",  bg: "#EEEDFE", fg: "#534AB7" },
+  cross:    { label: "Cross-functional", bg: "#F1EFE8", fg: "#5F5E5A" },
+};
 
-const INIT_TASKS = [
-  {id:1,title:"Resolve AP2214B 12V rail FPY — root-cause & containment",desc:"MainAux 12V rail failures at Sella. Pending station-level isolation and ECO disposition.",area:"yield",prio:"high",status:"inprogress",due:"2026-06-06",jira:"JP-512",site:"sella",created:"2026-05-20",updates:[]},
-  {id:2,title:"Close RH_SENSE failure investigation on AP1972D-FDC",desc:"Elevated retest rate; suspected fixture contact issue. Waiting on fixture rework from Sella ATE team.",area:"yield",prio:"high",status:"blocked",due:"2026-06-04",jira:"JP-498",site:"sella",created:"2026-05-18",updates:[]},
-  {id:3,title:"Validate AS0001-ANT-2 FPY post-TCO recovery",desc:"Antenna boards recovering after TCO. Need 3-day FPY trend confirmation before releasing to production.",area:"yield",prio:"medium",status:"inprogress",due:"2026-06-10",jira:"JP-505",site:"sella",created:"2026-05-22",updates:[]},
-  {id:4,title:"Sign ECOD-02355 for V4 power board change",desc:"ECO pending NPI Director signature. Flex Austin holds release until signed.",area:"eco",prio:"high",status:"backlog",due:"2026-05-28",jira:"",site:"austin",created:"2026-05-24",updates:[]},
-  {id:5,title:"Review V4 tester capacity plan Q3–Q4 2026",desc:"FDC-03 and FMB-03 Unified FT flagged as most constrained at Q4 peak. Alignment with Flex Austin needed.",area:"capacity",prio:"medium",status:"inprogress",due:"2026-06-15",jira:"JP-488",site:"austin",created:"2026-05-10",updates:[]},
-  {id:6,title:"Confirm V4 NPI 50-unit batch milestone status",desc:"Track 50-unit NPI build milestones against production plan. Weekly update to stakeholders.",area:"cross",prio:"medium",status:"inprogress",due:"2026-06-20",jira:"JP-476",site:"austin",created:"2026-05-12",updates:[]},
-  {id:7,title:"Align Machine Vision spec for AP1972D",desc:"MV rejection rate above target. Need updated acceptance criteria from Quality.",area:"quality",prio:"medium",status:"backlog",due:"2026-06-12",jira:"",site:"sella",created:"2026-05-21",updates:[]},
-  {id:8,title:"Ramat Hovav data center feasibility — next steps",desc:"Real estate investment in Negev industrial zone. Follow up on infrastructure & zoning data.",area:"cross",prio:"low",status:"backlog",due:"",jira:"",site:"other",created:"2026-05-15",updates:[]},
-  {id:9,title:"AP1999B-FPT Flex Austin FPY baseline",desc:"Establish FPY baseline for new station commissioning. Pull first 200-unit ATE session data.",area:"yield",prio:"medium",status:"backlog",due:"2026-06-18",jira:"",site:"austin",created:"2026-05-23",updates:[]},
-  {id:10,title:"Close IGBT gate de-assertion timing issue",desc:"Thermal Attachment Tester commissioning — gate not de-asserting before verification step. Resolved.",area:"quality",prio:"high",status:"done",due:"2026-05-20",jira:"JP-455",site:"austin",created:"2026-05-05",updates:[{date:"2026-05-20",text:"Root cause confirmed — sequence timing fixed in firmware. Verified on station."}]},
-];
+const PRIO_COLOR = { high: "#E24B4A", medium: "#EF9F27", low: "#378ADD" };
+const SITES = ["sella", "austin", "other"];
 
-// ── STATE ────────────────────────────────────────────────────────────────────
-let tasks  = [...INIT_TASKS];
-let areas  = [...DEFAULT_AREAS];
-let dark   = localStorage.getItem(SK_THEME) !== "light";
-let view   = "board";
-let search = "", fPrio = new Set(), fSite = new Set(), fStatus = new Set(), fArea = "all";
-let openTaskId = null, modalEditId = null, selPalette = 0;
-let nextId = Math.max(...INIT_TASKS.map(t=>t.id)) + 1;
-let db = null, ignoreNextUpdate = false;
+function today() { return new Date().toISOString().slice(0, 10); }
 
-// ── FIREBASE SETUP ───────────────────────────────────────────────────────────
-function loadSavedConfig(){
-  try{
-    const s = localStorage.getItem(SK_CONFIG);
-    return s ? JSON.parse(s) : null;
-  }catch{ return null; }
+function dueStatus(due) {
+  if (!due) return null;
+  const diff = Math.ceil((new Date(due) - new Date()) / 86400000);
+  if (diff < 0) return { label: `${Math.abs(diff)}d overdue`, color: "#E24B4A" };
+  if (diff === 0) return { label: "Due today", color: "#EF9F27" };
+  if (diff <= 3) return { label: `${diff}d left`, color: "#EF9F27" };
+  return { label: new Date(due).toLocaleDateString("en-GB", { day: "numeric", month: "short" }), color: "#888780" };
 }
 
-function saveConfig(){
-  const fields = ["apiKey","authDomain","projectId","storageBucket","messagingSenderId","appId","databaseURL"];
-  const cfg = {};
-  for(const f of fields){
-    const v = document.getElementById("cfg-"+f)?.value.trim();
-    if(!v){ document.getElementById("setup-error").textContent = `Please fill in: ${f}`; return; }
-    cfg[f] = v;
-  }
-  localStorage.setItem(SK_CONFIG, JSON.stringify(cfg));
-  document.getElementById("setup-overlay").style.display = "none";
-  initFirebase(cfg);
+function ProgressRing({ done, total, size = 52 }) {
+  const r = (size - 8) / 2;
+  const circ = 2 * Math.PI * r;
+  const pct = total ? done / total : 0;
+  return (
+    <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#e5e5e5" strokeWidth={5} />
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#1D9E75" strokeWidth={5}
+        strokeDasharray={circ} strokeDashoffset={circ * (1 - pct)} strokeLinecap="round"
+        style={{ transition: "stroke-dashoffset .6s ease" }} />
+    </svg>
+  );
 }
 
-function initFirebase(cfg){
-  try{
-    const app = firebase.initializeApp(cfg);
-    db = firebase.database();
-    setSyncDot("syncing");
-    // Push initial tasks if DB is empty
-    db.ref("tasks").once("value").then(snap=>{
-      if(!snap.exists()){
-        const obj = {};
-        tasks.forEach(t=>{ obj[t.id] = t; });
-        db.ref("tasks").set(obj);
-        db.ref("areas").set(Object.fromEntries(areas.map(a=>[a.id,a])));
-      }
-      // Subscribe to live updates
-      db.ref("tasks").on("value", snap=>{
-        if(ignoreNextUpdate){ ignoreNextUpdate=false; return; }
-        const val = snap.val();
-        if(val){
-          tasks = Object.values(val).sort((a,b)=>a.id-b.id);
-          nextId = Math.max(...tasks.map(t=>t.id),10)+1;
-          renderAll();
-        }
-        setSyncDot("ok");
-      });
-      db.ref("areas").on("value", snap=>{
-        const val = snap.val();
-        if(val){ areas = Object.values(val); renderFilters(); renderView(); }
-      });
-      setSyncDot("ok");
-    }).catch(e=>{ setSyncDot("error"); showBanner("Firebase error: "+e.message,"error"); });
-  }catch(e){
-    setSyncDot("error");
-    showBanner("Firebase init failed: "+e.message,"error");
-    localStorage.removeItem(SK_CONFIG);
-  }
-}
+const STORAGE_KEY = "venus4_pm_tasks_v1";
 
-function setSyncDot(state){
-  const d = document.getElementById("sync-dot");
-  if(!d) return;
-  d.className = state==="ok"?"":state;
-  d.title = state==="ok"?"Synced":state==="syncing"?"Syncing…":"Sync error";
-}
+function App() {
+  const [tasks, setTasks] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : INITIAL_TASKS;
+    } catch { return INITIAL_TASKS; }
+  });
+  const [view, setView] = useState("board");
+  const [search, setSearch] = useState("");
+  const [filterPrio, setFilterPrio] = useState("all");
+  const [filterArea, setFilterArea] = useState("all");
+  const [filterSite, setFilterSite] = useState("all");
+  const [modal, setModal] = useState(null); // null | { mode: "add"|"edit", task?, status? }
+  const [detailId, setDetailId] = useState(null);
+  const [updateText, setUpdateText] = useState("");
+  const nextId = useRef(tasks.length + 1);
 
-function showBanner(msg, type, ms=3000){
-  const b = document.getElementById("sync-banner");
-  b.textContent = msg; b.className = type;
-  if(ms) setTimeout(()=>{ b.className=""; }, ms);
-}
+  useEffect(() => {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); } catch {}
+    nextId.current = Math.max(...tasks.map(t => t.id), 0) + 1;
+  }, [tasks]);
 
-function writeTasks(){
-  if(!db){ return; }
-  setSyncDot("syncing");
-  const obj = {};
-  tasks.forEach(t=>{ obj[t.id] = t; });
-  ignoreNextUpdate = true;
-  db.ref("tasks").set(obj)
-    .then(()=>setSyncDot("ok"))
-    .catch(()=>setSyncDot("error"));
-}
-
-function writeAreas(){
-  if(!db) return;
-  const obj = Object.fromEntries(areas.map(a=>[a.id,a]));
-  db.ref("areas").set(obj);
-}
-
-// ── HELPERS ──────────────────────────────────────────────────────────────────
-function today(){ return new Date().toISOString().slice(0,10); }
-function esc(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
-function areaMap(){ return Object.fromEntries(areas.map(a=>[a.id,a])); }
-
-function dueStatus(due){
-  if(!due) return null;
-  const diff = Math.ceil((new Date(due)-new Date())/86400000);
-  if(diff<0)   return{label:`${Math.abs(diff)}d overdue`,color:"#E24B4A"};
-  if(diff===0) return{label:"Due today",color:"#EF9F27"};
-  if(diff<=3)  return{label:`${diff}d left`,color:"#EF9F27"};
-  return{label:new Date(due).toLocaleDateString("en-GB",{day:"numeric",month:"short"}),color:"#606075"};
-}
-
-function areaTag(id){
-  const am=areaMap(); const a=am[id]||{label:id,bg:"#222",fg:"#aaa",lbg:"#eee",lfg:"#555"};
-  const bg=dark?a.bg:a.lbg, fg=dark?a.fg:a.lfg;
-  return `<span class="area-tag" style="background:${bg};color:${fg}">${esc(a.label)}</span>`;
-}
-
-function statusBadge(status){
-  const map=dark?STATUS_DARK:STATUS_LIGHT;
-  const[bg,fg]=map[status]||map.backlog;
-  return `<span class="status-badge" style="background:${bg};color:${fg}">${STATUS_LABEL[status]||status}</span>`;
-}
-
-function progressRing(done,total){
-  const size=52,r=(size-8)/2,circ=2*Math.PI*r,pct=total?done/total:0;
-  const track=dark?"#27272c":"#e0e0e0";
-  return `<svg width="${size}" height="${size}" style="transform:rotate(-90deg)">
-    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${track}" stroke-width="5"/>
-    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#1D9E75" stroke-width="5"
-      stroke-dasharray="${circ}" stroke-dashoffset="${circ*(1-pct)}" stroke-linecap="round"/>
-  </svg>`;
-}
-
-function applyTheme(){
-  document.body.className = dark?"":"light";
-  document.getElementById("theme-btn").textContent = dark?"☀️":"🌙";
-  localStorage.setItem(SK_THEME, dark?"dark":"light");
-}
-function toggleTheme(){ dark=!dark; applyTheme(); render(); }
-
-// ── VIEWS ────────────────────────────────────────────────────────────────────
-function toggleFilter(set, val){
-  if(set.has(val)) set.delete(val); else set.add(val);
-}
-function visible(){
-  return tasks.filter(t=>{
-    if(fPrio.size>0 && !fPrio.has(t.prio)) return false;
-    if(fArea!=="all" && t.area!==fArea) return false;
-    if(fSite.size>0 && !fSite.has(t.site)) return false;
-    if(fStatus.size>0 && !fStatus.has(t.status)) return false;
-    if(search){ const q=search.toLowerCase(); if(!t.title.toLowerCase().includes(q)&&!t.desc.toLowerCase().includes(q)) return false; }
+  // ── derived ──────────────────────────────────────────────────────────
+  const visible = tasks.filter(t => {
+    if (filterPrio !== "all" && t.prio !== filterPrio) return false;
+    if (filterArea !== "all" && t.area !== filterArea) return false;
+    if (filterSite !== "all" && t.site !== filterSite) return false;
+    if (search && !t.title.toLowerCase().includes(search.toLowerCase()) && !t.desc.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
-}
 
-function renderStats(){
-  const done=tasks.filter(t=>t.status==="done").length;
-  const blocked=tasks.filter(t=>t.status==="blocked").length;
-  const highOpen=tasks.filter(t=>t.prio==="high"&&t.status!=="done").length;
-  const pct=tasks.length?Math.round(done/tasks.length*100):0;
-  document.getElementById("stats-grid").innerHTML=[
-    {n:tasks.length,l:"Total tasks",sub:"all areas",c:"var(--text)",ring:true},
-    {n:done,l:"Completed",sub:`${pct}% done`,c:"#1D9E75"},
-    {n:blocked,l:"Blocked",sub:"need attention",c:"#E24B4A"},
-    {n:highOpen,l:"High open",sub:"urgent",c:"#E24B4A"},
-  ].map(s=>`<div class="stat-card">${s.ring?`<div class="ring-wrap">${progressRing(done,tasks.length)}</div>`:""}<div class="stat-num" style="color:${s.c}">${s.n}</div><div class="stat-lbl">${s.l}</div><div class="stat-sub">${s.sub}</div></div>`).join("");
-}
+  const done = tasks.filter(t => t.status === "done").length;
+  const blocked = tasks.filter(t => t.status === "blocked").length;
+  const highOpen = tasks.filter(t => t.prio === "high" && t.status !== "done").length;
 
-function renderFilters(){
-  document.getElementById("filters").innerHTML=`
-    <input type="text" placeholder="Search…" value="${esc(search)}" oninput="search=this.value;renderView()" style="padding:6px 10px;border-radius:8px;width:180px;">
-    <div class="filter-group">
-      ${[["high","High","#E24B4A"],["medium","Medium","#EF9F27"],["low","Low","#4fa3e8"]].map(([v,l,c])=>`
-        <button class="pill ${fPrio.has(v)?"on-dark":"off"}" onclick="toggleFilter(fPrio,'${v}');renderAll()"
-          style="background:${fPrio.has(v)?c:"var(--bg4)"};color:${fPrio.has(v)?"#fff":"var(--text2)"}">
-          ${l}${fPrio.has(v)?` <span style="font-size:10px;opacity:.7">✕</span>`:""}</button>`).join("")}
-    </div>
-    <div class="filter-group">
-      ${SITES.map(s=>`
-        <button class="pill ${fSite.has(s)?"on-dark":"off"}" onclick="toggleFilter(fSite,'${s}');renderView()"
-          style="background:${fSite.has(s)?"var(--text)":"var(--bg4)"};color:${fSite.has(s)?"var(--bg)":"var(--text2)"}">
-          ${s[0].toUpperCase()+s.slice(1)}${fSite.has(s)?` <span style="font-size:10px;opacity:.7">✕</span>`:""}</button>`).join("")}
-    </div>
-    <div class="filter-group">
-      ${[["backlog","Backlog","#606075"],["inprogress","In Progress","#4fa3e8"],["blocked","Blocked","#E24B4A"],["done","Done","#1D9E75"]].map(([v,l,c])=>`
-        <button class="pill ${fStatus.has(v)?"on-dark":"off"}" onclick="toggleFilter(fStatus,'${v}');renderView()"
-          style="background:${fStatus.has(v)?c:"var(--bg4)"};color:${fStatus.has(v)?"#fff":"var(--text2)"}">
-          ${l}${fStatus.has(v)?` <span style="font-size:10px;opacity:.7">✕</span>`:""}</button>`).join("")}
-    </div>
-    <div style="margin-left:auto;display:flex;gap:6px;align-items:center" class="desktop-only">
-      ${(fPrio.size||fSite.size||fStatus.size||fArea!=="all")?`<button onclick="fPrio=new Set();fSite=new Set();fStatus=new Set();fArea='all';renderAll()" style="padding:4px 10px;font-size:11px;border:1px solid var(--border2);border-radius:20px;background:transparent;color:var(--text3);cursor:pointer">✕ Clear all</button>`:""}
-      <select onchange="fArea=this.value;renderView()" style="padding:5px 10px;font-size:12px;border-radius:8px;">
-        <option value="all" ${fArea==="all"?"selected":""}>All areas</option>
-        ${areas.map(a=>`<option value="${a.id}" ${fArea===a.id?"selected":""}>${esc(a.label)}</option>`).join("")}
-      </select>
-    </div>`;
-}
-
-function renderBoard(){
-  const vis=visible();
-  return `<div class="board">${COLS.map(col=>{
-    const cards=vis.filter(t=>t.status===col.id);
-    return `<div>
-      <div class="col-header"><div class="col-dot" style="background:${col.color}"></div><span class="col-title">${col.label}</span><span class="col-count">${cards.length}</span></div>
-      <div class="col-cards">
-        ${cards.map(t=>{const due=dueStatus(t.due);return `<div class="task-card" onclick="openDrawer(${t.id})">
-          <div class="tc-top">${areaTag(t.area)}<div class="prio-dot" style="background:${PRIO_COLOR[t.prio]}"></div></div>
-          <div class="tc-title">${esc(t.title)}</div>
-          <div class="tc-desc">${esc(t.desc.length>85?t.desc.slice(0,85)+"…":t.desc)}</div>
-          <div class="tc-meta">${t.source==="email"?`<span title="Created from email" style="font-size:11px;color:var(--text3)">📧</span>`:""}${t.source==="todo"?`<span title="Imported from Microsoft To Do" style="font-size:11px;color:var(--text3)">✅</span>`:""} ${t.jira?`<span class="jira-ref">${esc(t.jira)}</span>`:""} ${due?`<span style="color:${due.color};margin-left:auto">${due.label}</span>`:""}</div>
-        </div>`;}).join("")}
-        ${!cards.length?`<div style="font-size:12px;color:var(--text3);padding:6px 4px">No tasks</div>`:""}
-      </div>
-      <button class="col-add" onclick="openModal(null,'${col.id}')">+ Add</button>
-    </div>`;
-  }).join("")}</div>`;
-}
-
-function renderList(){
-  const vis=visible();
-  return `<div class="list-wrap"><div class="table-scroll"><table class="list-table">
-    <thead><tr><th>Task</th><th>Area</th><th>Priority</th><th>Status</th><th>Site</th><th>Due</th><th>Jira</th></tr></thead>
-    <tbody>${vis.map(t=>{const due=dueStatus(t.due);return`<tr class="data" onclick="openDrawer(${t.id})">
-      <td style="font-weight:500;max-width:260px">${esc(t.title)}</td>
-      <td>${areaTag(t.area)}</td>
-      <td><span style="color:${PRIO_COLOR[t.prio]};font-weight:600;font-size:12px">● ${t.prio}</span></td>
-      <td>${statusBadge(t.status)}</td>
-      <td style="color:var(--text3);font-size:12px">${t.site}</td>
-      <td style="font-size:12px;color:${due?due.color:"var(--text3)"}">${due?due.label:"—"}</td>
-      <td style="font-size:12px;color:var(--blue);font-family:'DM Mono',monospace">${t.jira||"—"}</td>
-    </tr>`;}).join("")}</tbody>
-  </table></div></div>`;
-}
-
-function renderTimeline(){
-  const vis=visible();
-  const withDue=vis.filter(t=>t.due).sort((a,b)=>a.due.localeCompare(b.due));
-  const noDue=vis.filter(t=>!t.due);
-  if(!withDue.length&&!noDue.length) return`<div class="timeline-wrap"><p style="color:var(--text3);font-size:13px">No tasks match filter.</p></div>`;
-  const grouped={};
-  withDue.forEach(t=>{const k=new Date(t.due).toLocaleDateString("en-GB",{month:"long",year:"numeric"});if(!grouped[k])grouped[k]=[];grouped[k].push(t);});
-  let html=`<div class="timeline-wrap">`;
-  for(const[m,items] of Object.entries(grouped)){
-    html+=`<div style="margin-bottom:22px"><div class="tl-month">${m}</div>
-      ${items.map(t=>{const due=dueStatus(t.due);return`<div class="tl-item" style="border-color:${PRIO_COLOR[t.prio]}" onclick="openDrawer(${t.id})">
-        <div class="tl-date" style="color:${due?due.color:"var(--text3)"}">${new Date(t.due).toLocaleDateString("en-GB",{day:"numeric",month:"short"})}</div>
-        <div class="tl-body"><div style="display:flex;gap:5px;margin-bottom:4px;flex-wrap:wrap">${areaTag(t.area)} ${statusBadge(t.status)}</div>
-          <div style="font-size:13px;font-weight:500">${esc(t.title)}</div>
-          ${t.jira?`<div style="font-size:11px;color:var(--blue);font-family:'DM Mono',monospace;margin-top:3px">${esc(t.jira)}</div>`:""}
-        </div></div>`;}).join("")}
-    </div>`;
-  }
-  if(noDue.length) html+=`<div><div class="tl-month" style="color:var(--border2)">No due date</div>${noDue.map(t=>`<div class="tl-item" style="border-color:var(--border2)"><div class="tl-body"><div style="font-size:13px;font-weight:500;color:var(--text2)">${esc(t.title)}</div></div></div>`).join("")}</div>`;
-  return html+`</div>`;
-}
-
-function renderView(){
-  const vc=document.getElementById("view-container");
-  vc.innerHTML = view==="board"?renderBoard():view==="list"?renderList():renderTimeline();
-}
-
-function renderAll(){ renderStats(); renderFilters(); renderView(); if(openTaskId) renderDrawer(); }
-function render(){ renderAll(); }
-
-function setView(v){
-  view=v;
-  ["board","list","timeline"].forEach(x=>{
-    const b=document.getElementById(`vbtn-${x}`),m=document.getElementById(`mnav-${x}`);
-    if(b) b.style.cssText=x===v?"background:rgba(255,255,255,.1);color:var(--text);border:none;padding:4px 12px;border-radius:6px;font-size:13px;font-weight:500":"background:transparent;color:var(--text3);border:none;padding:4px 12px;border-radius:6px;font-size:13px";
-    if(m) m.classList.toggle("active",x===v);
-  });
-  renderView();
-}
-
-// ── DRAWER ───────────────────────────────────────────────────────────────────
-function openDrawer(id){ openTaskId=id; renderDrawer(); document.getElementById("drawer-bg").className="open"; }
-function closeDrawer(){ document.getElementById("drawer-bg").className=""; openTaskId=null; }
-
-function renderDrawer(){
-  const t=tasks.find(x=>x.id===openTaskId); if(!t) return;
-  const due=dueStatus(t.due);
-  const am=areaMap(); const a=am[t.area]||{};
-  const abg=dark?(a.bg||"#222"):(a.lbg||"#eee"),afg=dark?(a.fg||"#aaa"):(a.lfg||"#555");
-  document.getElementById("drawer").innerHTML=`
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
-      <div style="display:flex;gap:5px;flex-wrap:wrap">
-        <span class="area-tag" style="background:${abg};color:${afg}">${esc(a.label||t.area)}</span>
-        <span class="site-tag" style="background:var(--bg4);color:var(--text3)">${t.site}</span>
-      </div>
-      <div style="display:flex;gap:3px">
-        <button onclick="openModal(${t.id})" style="background:transparent;border:none;padding:5px 8px;border-radius:6px;font-size:12px;color:var(--text2);cursor:pointer">✏️ Edit</button>
-        <button onclick="deleteTask(${t.id})" style="background:transparent;border:none;padding:5px 8px;border-radius:6px;font-size:12px;color:#E24B4A;cursor:pointer">🗑</button>
-        <button onclick="closeDrawer()" style="background:transparent;border:none;padding:4px 8px;border-radius:6px;font-size:18px;color:var(--text3);cursor:pointer">×</button>
-      </div>
-    </div>
-    <h2 style="font-size:16px;font-weight:600;line-height:1.4;margin-bottom:10px">${esc(t.title)}</h2>
-    <p style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:16px">${esc(t.desc)}</p>
-    <div class="drawer-meta">
-      <div class="meta-cell"><div class="meta-lbl">Priority</div><span style="color:${PRIO_COLOR[t.prio]};font-weight:600;font-size:13px">${t.prio}</span></div>
-      <div class="meta-cell"><div class="meta-lbl">Status</div>${statusBadge(t.status)}</div>
-      <div class="meta-cell"><div class="meta-lbl">Due</div><span style="font-size:13px;color:${due?due.color:"var(--text3)"}">${due?due.label:"Not set"}</span></div>
-      <div class="meta-cell"><div class="meta-lbl">Jira</div><span style="font-size:12px;color:var(--blue);font-family:'DM Mono',monospace">${t.jira||"—"}</span></div>
-    </div>
-    ${t.source==="email"?`<div style="background:var(--bg3);border-radius:8px;padding:8px 12px;margin-bottom:18px;font-size:12px;color:var(--text3);display:flex;gap:8px;align-items:flex-start">
-      <span style="font-size:14px">📧</span>
-      <div><div style="font-weight:600;color:var(--text2);margin-bottom:2px">Created from email</div>
-      <div>${esc(t.emailFrom||"")} ${t.emailSubject?`— <em>${esc(t.emailSubject)}</em>`:""}</div></div>
-    </div>`:""}
-    ${t.source==="todo"?`<div style="background:var(--bg3);border-radius:8px;padding:8px 12px;margin-bottom:18px;font-size:12px;color:var(--text3);display:flex;gap:8px;align-items:center">
-      <span style="font-size:14px">✅</span>
-      <div><div style="font-weight:600;color:var(--text2);margin-bottom:2px">Imported from Microsoft To Do</div></div>
-    </div>`:""}
-    <div style="margin-bottom:18px">
-      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:7px">Move to</div>
-      <div class="move-btns">${COLS.filter(c=>c.id!==t.status).map(c=>`<button class="move-btn" onclick="moveTask(${t.id},'${c.id}')" style="border:1px solid ${c.color};color:${c.color}">→ ${c.label}</button>`).join("")}</div>
-    </div>
-    <div style="border-top:1px solid var(--border);padding-top:14px">
-      <div style="font-size:13px;font-weight:600;margin-bottom:11px">Updates</div>
-      ${!(t.updates||[]).length?`<p style="font-size:12px;color:var(--text3);margin-bottom:10px">No updates yet.</p>`:""}
-      ${(t.updates||[]).map(u=>`<div class="update-item"><div class="update-date">${u.date}</div><div class="update-text">${esc(u.text)}</div></div>`).join("")}
-      <div style="display:flex;gap:7px;margin-top:10px">
-        <textarea id="update-inp" placeholder="Add an update…" style="flex:1;padding:7px 10px;font-size:13px;border-radius:8px;resize:none;height:60px;background:var(--inp-bg);color:var(--text);border:1px solid var(--inp-br)"></textarea>
-        <button onclick="addUpdate(${t.id})" style="padding:7px 13px;background:#1D9E75;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:500;align-self:flex-end;cursor:pointer">Post</button>
-      </div>
-    </div>`;
-}
-
-function addUpdate(id){
-  const el=document.getElementById("update-inp"); if(!el||!el.value.trim()) return;
-  tasks=tasks.map(t=>t.id===id?{...t,updates:[...(t.updates||[]),{date:today(),text:el.value.trim()}]}:t);
-  writeTasks(); renderDrawer();
-}
-
-function moveTask(id,status){
-  tasks=tasks.map(t=>t.id===id?{...t,status}:t);
-  writeTasks(); closeDrawer(); renderAll();
-}
-
-function deleteTask(id){
-  if(!confirm("Delete this task?")) return;
-  tasks=tasks.filter(t=>t.id!==id);
-  writeTasks(); closeDrawer(); renderAll();
-}
-
-// ── MODAL ────────────────────────────────────────────────────────────────────
-function openModal(id, defaultStatus){
-  modalEditId=id;
-  const t=id?tasks.find(x=>x.id===id):null;
-  const aOpts=areas.map(a=>`<option value="${a.id}" ${(t?t.area:areas[0]?.id)===a.id?"selected":""}>${esc(a.label)}</option>`).join("");
-  const cOpts=COLS.map(c=>`<option value="${c.id}" ${(t?t.status:(defaultStatus||"backlog"))===c.id?"selected":""}>${c.label}</option>`).join("");
-  const sOpts=SITES.map(s=>`<option value="${s}" ${(t?t.site:"sella")===s?"selected":""}>${s[0].toUpperCase()+s.slice(1)}</option>`).join("");
-  document.getElementById("modal-box").innerHTML=`
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-      <h3 style="font-size:15px;font-weight:600">${id?"Edit task":"New task"}</h3>
-      <button onclick="closeModal()" style="background:none;border:none;font-size:20px;color:var(--text3);cursor:pointer">×</button>
-    </div>
-    <label class="form-lbl">Title</label>
-    <input class="form-inp" id="m-title" placeholder="Short verb-first title" value="${esc(t?t.title:"")}">
-    <label class="form-lbl">Description</label>
-    <textarea class="form-inp" id="m-desc" rows="3" style="height:68px;resize:vertical" placeholder="Context & what needs to happen">${esc(t?t.desc:"")}</textarea>
-    <div class="modal-row">
-      <div><label class="form-lbl">Area</label><select class="form-inp" id="m-area">${aOpts}</select></div>
-      <div><label class="form-lbl">Priority</label><select class="form-inp" id="m-prio">
-        <option value="high" ${(t&&t.prio==="high")?"selected":""}>High</option>
-        <option value="medium" ${(!t||t.prio==="medium")?"selected":""}>Medium</option>
-        <option value="low" ${(t&&t.prio==="low")?"selected":""}>Low</option>
-      </select></div>
-      <div><label class="form-lbl">Status</label><select class="form-inp" id="m-status">${cOpts}</select></div>
-      <div><label class="form-lbl">Site</label><select class="form-inp" id="m-site">${sOpts}</select></div>
-      <div><label class="form-lbl">Due date</label><input class="form-inp" id="m-due" type="date" value="${t?t.due:""}"></div>
-      <div><label class="form-lbl">Jira ticket</label><input class="form-inp" id="m-jira" placeholder="JP-###" style="font-family:'DM Mono',monospace" value="${esc(t?t.jira:"")}"></div>
-    </div>
-    <div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end">
-      <button onclick="closeModal()" style="padding:7px 16px;border:1px solid var(--border2);border-radius:8px;background:transparent;font-size:13px;color:var(--text2);cursor:pointer">Cancel</button>
-      <button onclick="saveModal()" style="padding:7px 18px;background:#1D9E75;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer">${id?"Save changes":"Create task"}</button>
-    </div>`;
-  document.getElementById("modal-bg").className="open";
-}
-function closeModal(){ document.getElementById("modal-bg").className=""; }
-function saveModal(){
-  const title=document.getElementById("m-title").value.trim(); if(!title) return;
-  const form={title,desc:document.getElementById("m-desc").value.trim(),area:document.getElementById("m-area").value,prio:document.getElementById("m-prio").value,status:document.getElementById("m-status").value,site:document.getElementById("m-site").value,due:document.getElementById("m-due").value,jira:document.getElementById("m-jira").value.trim()};
-  if(modalEditId){ tasks=tasks.map(t=>t.id===modalEditId?{...t,...form}:t); }
-  else{ tasks.push({...form,id:nextId++,created:today(),updates:[]}); }
-  writeTasks(); closeModal(); renderAll();
-}
-
-// ── AREA SETTINGS ────────────────────────────────────────────────────────────
-function openSettings(){ renderSettings(); document.getElementById("settings-bg").className="open"; }
-function closeSettings(){ document.getElementById("settings-bg").className=""; }
-function renderSettings(){
-  const isDefault=id=>DEFAULT_AREAS.some(a=>a.id===id);
-  const swatches=PALETTE.map((p,i)=>`<div class="palette-swatch" onclick="selPalette=${i};renderSettings()" style="background:${dark?p.bg:p.lbg};border-color:${selPalette===i?(dark?p.fg:p.lfg):"transparent"};overflow:hidden"><div style="width:100%;height:100%;background:${dark?p.fg:p.lfg};opacity:.55;border-radius:4px"></div></div>`).join("");
-  document.getElementById("settings-box").innerHTML=`
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
-      <h3 style="font-size:15px;font-weight:600">Manage Areas</h3>
-      <button onclick="closeSettings()" style="background:none;border:none;font-size:20px;color:var(--text3);cursor:pointer">×</button>
-    </div>
-    ${areas.map(a=>{const abg=dark?a.bg:a.lbg,afg=dark?a.fg:a.lfg;return`<div class="area-row"><div class="area-swatch" style="background:${abg};border:1px solid ${afg}"></div><input value="${esc(a.label)}" onchange="renameArea('${a.id}',this.value)" style="flex:1;background:transparent;border:none;border-bottom:1px solid var(--border2);border-radius:0;padding:2px 4px;font-size:13px;font-weight:500;color:var(--text)">${isDefault(a.id)?`<span style="font-size:10px;color:var(--text3);padding:2px 5px">built-in</span>`:`<button onclick="removeArea('${a.id}')" style="background:transparent;border:none;color:#E24B4A;font-size:16px;cursor:pointer;padding:0 4px">×</button>`}</div>`;}).join("")}
-    <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:4px">
-      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:10px">Add new area</div>
-      <input id="new-area-name" placeholder="Area name…" style="width:100%;padding:8px 10px;border-radius:8px;margin-bottom:10px">
-      <div style="font-size:11px;color:var(--text3);margin-bottom:7px">Pick a colour</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">${swatches}</div>
-      <div style="display:flex;align-items:center;gap:10px">
-        <div id="area-preview" style="font-size:11px;color:var(--text3)">Type a name to preview</div>
-        <button onclick="addArea()" style="margin-left:auto;padding:7px 16px;background:#1D9E75;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer">+ Add area</button>
-      </div>
-    </div>`;
-  const ni=document.getElementById("new-area-name");
-  if(ni) ni.oninput=()=>{const v=ni.value.trim(),p=PALETTE[selPalette],bg=dark?p.bg:p.lbg,fg=dark?p.fg:p.lfg;document.getElementById("area-preview").innerHTML=v?`Preview: <span class="area-tag" style="background:${bg};color:${fg}">${esc(v)}</span>`:`<span style="color:var(--text3)">Type a name to preview</span>`;};
-}
-function addArea(){
-  const name=document.getElementById("new-area-name")?.value.trim(); if(!name) return;
-  areas.push({id:"area_"+Date.now(),label:name,...PALETTE[selPalette]});
-  writeAreas(); renderSettings(); renderFilters();
-}
-function removeArea(id){
-  if(DEFAULT_AREAS.some(a=>a.id===id)) return;
-  areas=areas.filter(a=>a.id!==id);
-  writeAreas(); renderSettings(); renderFilters();
-}
-function renameArea(id,label){
-  if(!label.trim()) return;
-  areas=areas.map(a=>a.id===id?{...a,label:label.trim()}:a);
-  writeAreas(); renderView();
-}
-
-
-// ── EMAIL TO TASK ─────────────────────────────────────────────────────────────
-function openEmailModal(){
-  document.getElementById("email-modal-bg").style.display = "flex";
-  showEmailStep(1);
-  const inp = document.getElementById("email-input");
-  if(inp){ inp.value = ""; updateCharCount(); inp.focus(); }
-}
-function closeEmailModal(){ document.getElementById("email-modal-bg").style.display = "none"; }
-function showEmailStep(n){
-  [1,2,3,"error"].forEach(s => {
-    const el = document.getElementById("email-step-"+(s==="error"?"error":s));
-    if(el) el.style.display = "none";
-  });
-  const target = n === "error" ? "email-step-error" : "email-step-"+n;
-  const el = document.getElementById(target);
-  if(el) el.style.display = n===2 ? "block" : "";
-}
-function goBackToEmail(){ showEmailStep(1); }
-function updateCharCount(){
-  const inp = document.getElementById("email-input");
-  const cnt = document.getElementById("email-char-count");
-  if(inp && cnt) cnt.textContent = inp.value.length > 0 ? inp.value.length+" chars" : "";
-}
-document.addEventListener("DOMContentLoaded", ()=>{
-  const inp = document.getElementById("email-input");
-  if(inp) inp.addEventListener("input", updateCharCount);
-});
-
-async function analyzeEmail(){
-  const emailText = document.getElementById("email-input")?.value.trim();
-  if(!emailText){ alert("Please paste an email first."); return; }
-
-  showEmailStep(2);
-
-  const areaList = areas.map(a => a.id+": "+a.label).join(", ");
-  const prompt = `You are a program manager assistant. Analyze this Outlook email and extract a task.
-
-EMAIL:
-${emailText}
-
-CONTEXT - Available areas: ${areaList}
-Available sites: sella (Israel), austin (Flex Austin TX), other
-Today's date: ${today()}
-
-Extract and return ONLY valid JSON (no markdown, no explanation):
-{
-  "title": "short action-oriented task title (verb first, max 80 chars)",
-  "desc": "2-3 sentence summary of what needs to be done and why",
-  "area": "best matching area id from the list above",
-  "prio": "high|medium|low based on urgency/impact",
-  "status": "backlog",
-  "site": "sella|austin|other",
-  "due": "YYYY-MM-DD if a deadline is mentioned, else empty string",
-  "jira": "JP-### if a Jira ticket is mentioned, else empty string",
-  "email_preview": "From: [sender] — Subject: [subject] (first 80 chars)"
-}`;
-
-  try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
-        messages: [{ role: "user", content: prompt }]
-      })
-    });
-    if(!res.ok){ throw new Error("API error "+res.status); }
-    const data = await res.json();
-    const raw = data.content?.find(b=>b.type==="text")?.text || "";
-    // Strip any markdown fences just in case
-    const cleaned = raw.replace(/```json|```/g,"").trim();
-    const parsed = JSON.parse(cleaned);
-    populateEmailForm(parsed);
-    showEmailStep(3);
-  } catch(e) {
-    document.getElementById("email-error-msg").textContent = e.message || "Unknown error";
-    showEmailStep("error");
-  }
-}
-
-function populateEmailForm(data){
-  document.getElementById("em-title").value = data.title || "";
-  document.getElementById("em-desc").value  = data.desc  || "";
-  document.getElementById("em-due").value   = data.due   || "";
-  document.getElementById("em-jira").value  = data.jira  || "";
-  document.getElementById("email-source-preview").textContent = data.email_preview || "Extracted from email";
-
-  // Area select
-  const aSelect = document.getElementById("em-area");
-  aSelect.innerHTML = areas.map(a=>`<option value="${a.id}" ${a.id===data.area?"selected":""}>${esc(a.label)}</option>`).join("");
-
-  // Prio
-  const pSelect = document.getElementById("em-prio");
-  ["high","medium","low"].forEach(v => {
-    const opt = pSelect.querySelector(`option[value="${v}"]`);
-    if(opt) opt.selected = (v === data.prio);
-  });
-
-  // Site
-  const sSelect = document.getElementById("em-site");
-  SITES.forEach(v => {
-    const opt = sSelect.querySelector(`option[value="${v}"]`);
-    if(opt) opt.selected = (v === data.site);
-  });
-}
-
-function saveEmailTask(){
-  const title = document.getElementById("em-title").value.trim();
-  if(!title){ alert("Title is required."); return; }
-  const form = {
-    title,
-    desc:   document.getElementById("em-desc").value.trim(),
-    area:   document.getElementById("em-area").value,
-    prio:   document.getElementById("em-prio").value,
-    status: document.getElementById("em-status").value,
-    site:   document.getElementById("em-site").value,
-    due:    document.getElementById("em-due").value,
-    jira:   document.getElementById("em-jira").value.trim(),
-  };
-  tasks.push({...form, id:nextId++, created:today(), updates:[]});
-  writeTasks();
-  closeEmailModal();
-  renderAll();
-  showBanner("Task created from email ✓", "syncing", 2500);
-}
-
-
-// ── MICROSOFT TO DO SYNC ──────────────────────────────────────────────────────
-const TENANT_ID = "fb37c808-6ca7-40eb-8746-85795efcbd36";
-const TODO_CLIENT_ID = "d3590ed6-52b3-4102-aeff-aad2292ab01c"; // Microsoft Office client
-const TODO_SCOPE = "Tasks.ReadWrite";
-const TODO_SK_TOKEN = "v4pm_todo_token";
-const TODO_SK_LIST  = "v4pm_todo_listid";
-
-let todoAccessToken = null;
-let todoListId = null;
-
-async function syncToDo() {
-  const btn = document.getElementById("todo-sync-btn");
-  if(btn) { btn.style.opacity = ".5"; btn.style.pointerEvents = "none"; }
-  try {
-    showBanner("Connecting to Microsoft To Do…", "syncing", 0);
-    await ensureTodoToken();
-    await ensureTodoListId();
-    await pullTodoTasks();
-    showBanner("To Do sync complete ✓", "connected", 3000);
-  } catch(e) {
-    showBanner("To Do sync failed: " + (e.message||"unknown error"), "error", 5000);
-    console.error("ToDo sync error:", e);
-  } finally {
-    if(btn) { btn.style.opacity = "1"; btn.style.pointerEvents = "auto"; }
-  }
-}
-
-async function ensureTodoToken() {
-  // Try cached token first
-  const cached = load(TODO_SK_TOKEN, null);
-  if(cached && cached.expires > Date.now()) {
-    todoAccessToken = cached.token;
-    return;
-  }
-  // Use device code flow — opens login popup
-  const dcRes = await fetch(`https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/devicecode`, {
-    method: "POST",
-    headers: {"Content-Type":"application/x-www-form-urlencoded"},
-    body: `client_id=${TODO_CLIENT_ID}&scope=https://graph.microsoft.com/Tasks.ReadWrite offline_access`
-  });
-  const dcData = await dcRes.json();
-  if(!dcData.device_code) throw new Error("Could not start device login: " + JSON.stringify(dcData));
-
-  // Show user code in banner
-  showBanner(`Go to ${dcData.verification_uri} and enter code: ${dcData.user_code}`, "syncing", 0);
-
-  // Poll for token
-  const interval = (dcData.interval || 5) * 1000;
-  const expires = Date.now() + dcData.expires_in * 1000;
-  while(Date.now() < expires) {
-    await new Promise(r => setTimeout(r, interval));
-    const tokenRes = await fetch(`https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token`, {
-      method: "POST",
-      headers: {"Content-Type":"application/x-www-form-urlencoded"},
-      body: `client_id=${TODO_CLIENT_ID}&grant_type=urn:ietf:params:oauth2:grant-type:device_code&device_code=${dcData.device_code}`
-    });
-    const tokenData = await tokenRes.json();
-    if(tokenData.access_token) {
-      todoAccessToken = tokenData.access_token;
-      save(TODO_SK_TOKEN, { token: tokenData.access_token, expires: Date.now() + (tokenData.expires_in - 60) * 1000 });
-      return;
+  // ── task actions ──────────────────────────────────────────────────────
+  function saveTask(form) {
+    if (modal.mode === "edit") {
+      setTasks(ts => ts.map(t => t.id === form.id ? { ...t, ...form } : t));
+    } else {
+      setTasks(ts => [...ts, { ...form, id: nextId.current++, created: today(), updates: [] }]);
     }
-    if(tokenData.error && tokenData.error !== "authorization_pending") {
-      throw new Error("Login failed: " + tokenData.error_description);
-    }
+    setModal(null);
   }
-  throw new Error("Login timed out — please try again");
-}
 
-async function ensureTodoListId() {
-  // Check cache
-  const cached = load(TODO_SK_LIST, null);
-  if(cached) { todoListId = cached; return; }
+  function deleteTask(id) {
+    setTasks(ts => ts.filter(t => t.id !== id));
+    setDetailId(null);
+  }
 
-  // Fetch all To Do lists
-  const res = await fetch("https://graph.microsoft.com/v1.0/me/todo/lists", {
-    headers: { Authorization: "Bearer " + todoAccessToken }
-  });
-  const data = await res.json();
-  if(!data.value) throw new Error("Could not fetch To Do lists");
+  function addUpdate(id) {
+    if (!updateText.trim()) return;
+    setTasks(ts => ts.map(t => t.id === id
+      ? { ...t, updates: [...(t.updates || []), { date: today(), text: updateText.trim() }] }
+      : t
+    ));
+    setUpdateText("");
+  }
 
-  // Find "Tasks" list (default) or "V4 Tracker"
-  const list = data.value.find(l => l.displayName === "V4 Tracker") 
-             || data.value.find(l => l.wellknownListName === "defaultList")
-             || data.value[0];
-  if(!list) throw new Error("No To Do list found");
+  function moveTask(id, status) {
+    setTasks(ts => ts.map(t => t.id === id ? { ...t, status } : t));
+  }
 
-  todoListId = list.id;
-  save(TODO_SK_LIST, list.id);
-}
+  const detailTask = tasks.find(t => t.id === detailId);
 
-async function pullTodoTasks() {
-  const res = await fetch(
-    `https://graph.microsoft.com/v1.0/me/todo/lists/${todoListId}/tasks?$filter=status ne 'completed'&$top=50`,
-    { headers: { Authorization: "Bearer " + todoAccessToken } }
+  return (
+    <div style={{ fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif", minHeight: "100vh", background: "#f7f6f3", color: "#1a1a1a" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+        * { box-sizing: border-box; }
+        body { margin: 0; }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+        input, select, textarea { font-family: inherit; outline: none; }
+        input::placeholder { color: #aaa; }
+        button { font-family: inherit; cursor: pointer; }
+        .task-card { transition: box-shadow .15s, transform .1s; }
+        .task-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.1); transform: translateY(-1px); }
+        .pill-btn { transition: background .15s, color .15s; }
+        .pill-btn:hover { opacity: .85; }
+        .icon-btn:hover { background: rgba(0,0,0,.06) !important; }
+      `}</style>
+
+      {/* ── HEADER ── */}
+      <div style={{ background: "#1a1a1a", color: "#fff", padding: "0 28px" }}>
+        <div style={{ maxWidth: 1280, margin: "0 auto", display: "flex", alignItems: "center", gap: 16, height: 56 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 28, height: 28, background: "#1D9E75", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="12" rx="2" fill="#fff" opacity=".9"/><rect x="9" y="2" width="5" height="7" rx="2" fill="#fff" opacity=".9"/></svg>
+            </div>
+            <span style={{ fontWeight: 600, fontSize: 15, letterSpacing: "-.01em" }}>Venus4 NPI</span>
+            <span style={{ color: "#666", fontSize: 13 }}>/ PM Tracker</span>
+          </div>
+          <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
+            {[["board","Board"],["list","List"],["timeline","Timeline"]].map(([v, l]) => (
+              <button key={v} onClick={() => setView(v)}
+                style={{ background: view === v ? "rgba(255,255,255,.12)" : "transparent", color: view === v ? "#fff" : "#888", border: "none", padding: "5px 12px", borderRadius: 6, fontSize: 13, fontWeight: view === v ? 500 : 400 }}>
+                {l}
+              </button>
+            ))}
+            <button onClick={() => setModal({ mode: "add", status: "backlog" })}
+              style={{ background: "#1D9E75", color: "#fff", border: "none", padding: "6px 14px", borderRadius: 6, fontSize: 13, fontWeight: 500, display: "flex", alignItems: "center", gap: 5 }}>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><line x1="6" y1="1" x2="6" y2="11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/><line x1="1" y1="6" x2="11" y2="6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+              Add task
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "20px 28px 40px" }}>
+
+        {/* ── STATS ── */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px,1fr))", gap: 12, marginBottom: 20 }}>
+          {[
+            { n: tasks.length, l: "Total tasks", sub: "across all areas", c: "#1a1a1a" },
+            { n: done, l: "Completed", sub: `${tasks.length ? Math.round(done/tasks.length*100) : 0}% of total`, c: "#1D9E75" },
+            { n: blocked, l: "Blocked", sub: "need attention", c: "#E24B4A" },
+            { n: highOpen, l: "High priority open", sub: "urgent items", c: "#E24B4A" },
+          ].map((s, i) => (
+            <div key={i} style={{ background: "#fff", borderRadius: 12, padding: "14px 18px", border: "1px solid #eee", position: "relative", overflow: "hidden" }}>
+              {i === 0 && <div style={{ position: "absolute", right: 14, top: 10 }}><ProgressRing done={done} total={tasks.length} /></div>}
+              <div style={{ fontSize: 26, fontWeight: 600, color: s.c, lineHeight: 1 }}>{s.n}</div>
+              <div style={{ fontSize: 13, fontWeight: 500, color: "#1a1a1a", marginTop: 4 }}>{s.l}</div>
+              <div style={{ fontSize: 11, color: "#999", marginTop: 2 }}>{s.sub}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── FILTERS ── */}
+        <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap", alignItems: "center" }}>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks…"
+            style={{ padding: "7px 12px", fontSize: 13, border: "1px solid #e0e0e0", borderRadius: 8, background: "#fff", width: 220 }} />
+
+          <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+            {["all","high","medium","low"].map(p => (
+              <button key={p} className="pill-btn" onClick={() => setFilterPrio(p)}
+                style={{ padding: "4px 12px", borderRadius: 20, fontSize: 12, border: "none", fontWeight: 500,
+                  background: filterPrio === p ? (p === "all" ? "#1a1a1a" : PRIO_COLOR[p]) : "#e8e8e8",
+                  color: filterPrio === p ? "#fff" : "#666" }}>
+                {p === "all" ? "All priority" : p.charAt(0).toUpperCase() + p.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", gap: 5 }}>
+            {["all","sella","austin","other"].map(s => (
+              <button key={s} className="pill-btn" onClick={() => setFilterSite(s)}
+                style={{ padding: "4px 12px", borderRadius: 20, fontSize: 12, border: "none", fontWeight: 500,
+                  background: filterSite === s ? "#1a1a1a" : "#e8e8e8",
+                  color: filterSite === s ? "#fff" : "#666" }}>
+                {s === "all" ? "All sites" : s.charAt(0).toUpperCase() + s.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", gap: 5, marginLeft: "auto" }}>
+            <select value={filterArea} onChange={e => setFilterArea(e.target.value)}
+              style={{ padding: "5px 10px", fontSize: 12, border: "1px solid #e0e0e0", borderRadius: 8, background: "#fff", color: "#444" }}>
+              <option value="all">All areas</option>
+              {Object.entries(AREAS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* ── BOARD VIEW ── */}
+        {view === "board" && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14 }}>
+            {COLS.map(col => {
+              const colTasks = visible.filter(t => t.status === col.id);
+              return (
+                <div key={col.id}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: col.color }} />
+                    <span style={{ fontSize: 12, fontWeight: 600, letterSpacing: ".04em", textTransform: "uppercase", color: "#555" }}>{col.label}</span>
+                    <span style={{ marginLeft: "auto", background: "#eee", color: "#777", fontSize: 11, padding: "1px 8px", borderRadius: 10 }}>{colTasks.length}</span>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {colTasks.map(t => <TaskCard key={t.id} task={t} onOpen={() => setDetailId(t.id)} onMove={moveTask} />)}
+                    {colTasks.length === 0 && <div style={{ fontSize: 12, color: "#bbb", padding: "8px 4px" }}>No tasks</div>}
+                  </div>
+                  <button onClick={() => setModal({ mode: "add", status: col.id })}
+                    style={{ width: "100%", marginTop: 8, padding: "6px", fontSize: 12, border: "1px dashed #ccc", borderRadius: 8, background: "transparent", color: "#aaa" }}>
+                    + Add to {col.label.toLowerCase()}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── LIST VIEW ── */}
+        {view === "list" && (
+          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #eee", overflow: "hidden" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid #f0f0f0" }}>
+                  {["Task","Area","Priority","Status","Site","Due","Jira"].map(h => (
+                    <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontSize: 11, fontWeight: 600, color: "#999", textTransform: "uppercase", letterSpacing: ".04em" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {visible.map(t => {
+                  const due = dueStatus(t.due);
+                  const area = AREAS[t.area] || AREAS.cross;
+                  return (
+                    <tr key={t.id} onClick={() => setDetailId(t.id)}
+                      style={{ borderBottom: "1px solid #f5f5f5", cursor: "pointer" }}
+                      onMouseEnter={e => e.currentTarget.style.background="#fafafa"}
+                      onMouseLeave={e => e.currentTarget.style.background="transparent"}>
+                      <td style={{ padding: "10px 14px", fontWeight: 500, maxWidth: 280 }}>{t.title}</td>
+                      <td style={{ padding: "10px 14px" }}><span style={{ background: area.bg, color: area.fg, fontSize: 11, padding: "2px 8px", borderRadius: 10, fontWeight: 500 }}>{area.label}</span></td>
+                      <td style={{ padding: "10px 14px" }}><span style={{ color: PRIO_COLOR[t.prio], fontWeight: 600, fontSize: 12 }}>● {t.prio}</span></td>
+                      <td style={{ padding: "10px 14px" }}><StatusBadge status={t.status} /></td>
+                      <td style={{ padding: "10px 14px", color: "#888", fontSize: 12 }}>{t.site}</td>
+                      <td style={{ padding: "10px 14px", fontSize: 12, color: due?.color || "#aaa" }}>{due?.label || "—"}</td>
+                      <td style={{ padding: "10px 14px", fontSize: 12, color: "#378ADD", fontFamily: "'DM Mono', monospace" }}>{t.jira || "—"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* ── TIMELINE VIEW ── */}
+        {view === "timeline" && (
+          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #eee", padding: 20 }}>
+            <TimelineView tasks={visible} />
+          </div>
+        )}
+      </div>
+
+      {/* ── DETAIL DRAWER ── */}
+      {detailTask && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex" }} onClick={() => setDetailId(null)}>
+          <div style={{ flex: 1 }} />
+          <div style={{ width: 440, background: "#fff", height: "100%", overflowY: "auto", boxShadow: "-8px 0 40px rgba(0,0,0,.12)", padding: "24px" }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <AreaTag area={detailTask.area} />
+                <SiteBadge site={detailTask.site} />
+              </div>
+              <div style={{ display: "flex", gap: 4 }}>
+                <button className="icon-btn" onClick={() => { setModal({ mode: "edit", task: detailTask }); setDetailId(null); }}
+                  style={{ background: "transparent", border: "none", padding: 6, borderRadius: 6, fontSize: 13, color: "#666" }}>✏️ Edit</button>
+                <button className="icon-btn" onClick={() => deleteTask(detailTask.id)}
+                  style={{ background: "transparent", border: "none", padding: 6, borderRadius: 6, fontSize: 13, color: "#E24B4A" }}>🗑 Delete</button>
+                <button className="icon-btn" onClick={() => setDetailId(null)}
+                  style={{ background: "transparent", border: "none", padding: "4px 8px", borderRadius: 6, fontSize: 18, color: "#999" }}>×</button>
+              </div>
+            </div>
+
+            <h2 style={{ fontSize: 17, fontWeight: 600, lineHeight: 1.4, marginBottom: 10, color: "#1a1a1a" }}>{detailTask.title}</h2>
+            <p style={{ fontSize: 13, color: "#666", lineHeight: 1.6, marginBottom: 16 }}>{detailTask.desc}</p>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 20 }}>
+              {[
+                ["Priority", <span style={{ color: PRIO_COLOR[detailTask.prio], fontWeight: 600 }}>{detailTask.prio}</span>],
+                ["Status", <StatusBadge status={detailTask.status} />],
+                ["Due", dueStatus(detailTask.due) ? <span style={{ color: dueStatus(detailTask.due).color }}>{dueStatus(detailTask.due).label}</span> : <span style={{ color: "#aaa" }}>Not set</span>],
+                ["Jira", detailTask.jira ? <span style={{ color: "#378ADD", fontFamily: "'DM Mono', monospace", fontSize: 12 }}>{detailTask.jira}</span> : <span style={{ color: "#aaa" }}>—</span>],
+              ].map(([l, v]) => (
+                <div key={l} style={{ background: "#f7f6f3", borderRadius: 8, padding: "8px 12px" }}>
+                  <div style={{ fontSize: 10, color: "#aaa", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".04em", marginBottom: 3 }}>{l}</div>
+                  <div style={{ fontSize: 13 }}>{v}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Move status */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "#aaa", textTransform: "uppercase", letterSpacing: ".04em", marginBottom: 8 }}>Move to</div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {COLS.filter(c => c.id !== detailTask.status).map(c => (
+                  <button key={c.id} onClick={() => { moveTask(detailTask.id, c.id); setDetailId(null); }}
+                    style={{ padding: "4px 12px", borderRadius: 20, fontSize: 12, border: `1px solid ${c.color}`, background: "transparent", color: c.color, fontWeight: 500 }}>
+                    → {c.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Updates log */}
+            <div style={{ borderTop: "1px solid #f0f0f0", paddingTop: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: "#333" }}>Updates</div>
+              {(detailTask.updates || []).length === 0 && <p style={{ fontSize: 12, color: "#bbb", marginBottom: 12 }}>No updates yet.</p>}
+              {(detailTask.updates || []).map((u, i) => (
+                <div key={i} style={{ borderLeft: "2px solid #1D9E75", paddingLeft: 10, marginBottom: 10 }}>
+                  <div style={{ fontSize: 10, color: "#aaa", marginBottom: 2 }}>{u.date}</div>
+                  <div style={{ fontSize: 13, color: "#444", lineHeight: 1.5 }}>{u.text}</div>
+                </div>
+              ))}
+              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                <textarea value={updateText} onChange={e => setUpdateText(e.target.value)}
+                  placeholder="Add an update…"
+                  style={{ flex: 1, padding: "7px 10px", fontSize: 13, border: "1px solid #e0e0e0", borderRadius: 8, resize: "none", height: 64, background: "#fafafa" }} />
+                <button onClick={() => addUpdate(detailTask.id)}
+                  style={{ padding: "7px 14px", background: "#1D9E75", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 500, alignSelf: "flex-end" }}>
+                  Post
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── ADD/EDIT MODAL ── */}
+      {modal && <TaskModal modal={modal} onSave={saveTask} onClose={() => setModal(null)} />}
+    </div>
   );
-  const data = await res.json();
-  if(!data.value) throw new Error("Could not fetch To Do tasks");
-
-  let added = 0;
-  for(const item of data.value) {
-    // Check if already imported (match by todoId)
-    const exists = tasks.find(t => t.todoId === item.id);
-    if(exists) continue;
-
-    // Create task in tracker
-    const newTask = {
-      id: nextId++,
-      todoId: item.id,
-      title: item.title || "To Do task",
-      desc: item.body?.content ? item.body.content.replace(/<[^>]*>/g,"").slice(0,300) : "Imported from Microsoft To Do",
-      area: "cross",
-      prio: item.importance === "high" ? "high" : item.importance === "low" ? "low" : "medium",
-      status: "backlog",
-      site: "sella",
-      due: item.dueDateTime?.dateTime?.slice(0,10) || "",
-      jira: "",
-      created: today(),
-      updates: [],
-      source: "todo",
-    };
-    tasks.push(newTask);
-    added++;
-  }
-
-  if(added > 0) {
-    writeTasks();
-    renderAll();
-    showBanner(`${added} task${added>1?"s":""} imported from To Do ✓`, "connected", 3000);
-  } else {
-    showBanner("No new tasks in To Do", "connected", 3000);
-  }
 }
 
-// ── BOOT ─────────────────────────────────────────────────────────────────────
-applyTheme();
-render();
-
-// Check if Firebase needs setup
-if(FIREBASE_NOT_CONFIGURED){
-  const saved = loadSavedConfig();
-  if(saved){
-    initFirebase(saved);
-  } else {
-    document.getElementById("setup-overlay").style.display = "flex";
-  }
-} else {
-  // Config was hardcoded in the file
-  initFirebase(FIREBASE_CONFIG);
+function TaskCard({ task, onOpen, onMove }) {
+  const area = AREAS[task.area] || AREAS.cross;
+  const due = dueStatus(task.due);
+  return (
+    <div className="task-card" onClick={onOpen}
+      style={{ background: "#fff", borderRadius: 10, border: "1px solid #eee", padding: "12px 14px", cursor: "pointer" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+        <span style={{ background: area.bg, color: area.fg, fontSize: 10, padding: "2px 7px", borderRadius: 10, fontWeight: 600 }}>{area.label}</span>
+        <span style={{ marginLeft: "auto", width: 8, height: 8, borderRadius: "50%", background: PRIO_COLOR[task.prio], flexShrink: 0 }} title={task.prio + " priority"} />
+      </div>
+      <div style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.4, marginBottom: 6, color: "#1a1a1a" }}>{task.title}</div>
+      <div style={{ fontSize: 11, color: "#888", lineHeight: 1.5, marginBottom: 8 }}>{task.desc.length > 80 ? task.desc.slice(0,80) + "…" : task.desc}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11 }}>
+        {task.jira && <span style={{ color: "#378ADD", fontFamily: "'DM Mono', monospace" }}>{task.jira}</span>}
+        {due && <span style={{ color: due.color, marginLeft: "auto" }}>{due.label}</span>}
+      </div>
+    </div>
+  );
 }
+
+function StatusBadge({ status }) {
+  const map = { backlog: ["#f0f0f0","#888","Backlog"], inprogress: ["#E6F1FB","#185FA5","In Progress"], blocked: ["#FCEBEB","#A32D2D","Blocked"], done: ["#E1F5EE","#0F6E56","Done"] };
+  const [bg, fg, label] = map[status] || map.backlog;
+  return <span style={{ background: bg, color: fg, fontSize: 11, padding: "2px 9px", borderRadius: 10, fontWeight: 600 }}>{label}</span>;
+}
+
+function AreaTag({ area }) {
+  const a = AREAS[area] || AREAS.cross;
+  return <span style={{ background: a.bg, color: a.fg, fontSize: 11, padding: "2px 9px", borderRadius: 10, fontWeight: 600 }}>{a.label}</span>;
+}
+
+function SiteBadge({ site }) {
+  const map = { sella: ["#FAEEDA","#854F0B"], austin: ["#EEEDFE","#534AB7"], other: ["#F1EFE8","#5F5E5A"] };
+  const [bg, fg] = map[site] || map.other;
+  return <span style={{ background: bg, color: fg, fontSize: 11, padding: "2px 9px", borderRadius: 10, fontWeight: 600 }}>{site.charAt(0).toUpperCase()+site.slice(1)}</span>;
+}
+
+function TimelineView({ tasks }) {
+  const withDue = tasks.filter(t => t.due).sort((a,b) => a.due.localeCompare(b.due));
+  const noDue   = tasks.filter(t => !t.due);
+
+  if (withDue.length === 0 && noDue.length === 0) return <p style={{ color: "#aaa", fontSize: 13 }}>No tasks match the current filter.</p>;
+
+  const grouped = {};
+  withDue.forEach(t => {
+    const d = new Date(t.due);
+    const key = d.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(t);
+  });
+
+  return (
+    <div>
+      {Object.entries(grouped).map(([month, items]) => (
+        <div key={month} style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#aaa", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 10 }}>{month}</div>
+          {items.map(t => {
+            const due = dueStatus(t.due);
+            const area = AREAS[t.area] || AREAS.cross;
+            return (
+              <div key={t.id} style={{ display: "flex", gap: 14, alignItems: "flex-start", marginBottom: 10, paddingLeft: 10, borderLeft: `3px solid ${PRIO_COLOR[t.prio]}` }}>
+                <div style={{ fontSize: 11, color: due?.color || "#aaa", minWidth: 72, paddingTop: 2 }}>
+                  {new Date(t.due).toLocaleDateString("en-GB",{day:"numeric",month:"short"})}
+                </div>
+                <div style={{ flex: 1, background: "#f7f6f3", borderRadius: 8, padding: "8px 12px" }}>
+                  <div style={{ display: "flex", gap: 6, marginBottom: 4 }}>
+                    <AreaTag area={t.area} />
+                    <StatusBadge status={t.status} />
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 500 }}>{t.title}</div>
+                  {t.jira && <div style={{ fontSize: 11, color: "#378ADD", fontFamily: "'DM Mono', monospace", marginTop: 3 }}>{t.jira}</div>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ))}
+      {noDue.length > 0 && (
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#ccc", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 10 }}>No due date</div>
+          {noDue.map(t => (
+            <div key={t.id} style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 8, paddingLeft: 10, borderLeft: "3px solid #ddd" }}>
+              <div style={{ flex: 1, background: "#f7f6f3", borderRadius: 8, padding: "8px 12px" }}>
+                <div style={{ fontSize: 13, fontWeight: 500, color: "#666" }}>{t.title}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TaskModal({ modal, onSave, onClose }) {
+  const t = modal.task || {};
+  const [form, setForm] = useState({
+    id: t.id,
+    title: t.title || "",
+    desc: t.desc || "",
+    area: t.area || "yield",
+    prio: t.prio || "medium",
+    status: t.status || modal.status || "backlog",
+    due: t.due || "",
+    jira: t.jira || "",
+    site: t.site || "sella",
+  });
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center" }}
+      onClick={onClose}>
+      <div style={{ background: "#fff", borderRadius: 14, padding: "24px 28px", width: 460, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,.2)" }}
+        onClick={e => e.stopPropagation()}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 600, margin: 0 }}>{modal.mode === "edit" ? "Edit task" : "New task"}</h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 20, color: "#aaa", lineHeight: 1, padding: 0 }}>×</button>
+        </div>
+
+        <label style={lbl}>Title</label>
+        <input value={form.title} onChange={e => set("title", e.target.value)}
+          placeholder="Short verb-first title" style={inp} />
+
+        <label style={lbl}>Description</label>
+        <textarea value={form.desc} onChange={e => set("desc", e.target.value)}
+          placeholder="Context & what needs to happen"
+          style={{ ...inp, height: 72, resize: "vertical" }} />
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          {[
+            ["Area", "area", Object.entries(AREAS).map(([k,v]) => [k, v.label])],
+            ["Priority", "prio", [["high","High"],["medium","Medium"],["low","Low"]]],
+            ["Status", "status", COLS.map(c => [c.id, c.label])],
+            ["Site", "site", SITES.map(s => [s, s.charAt(0).toUpperCase()+s.slice(1)])],
+          ].map(([label, key, opts]) => (
+            <div key={key}>
+              <label style={lbl}>{label}</label>
+              <select value={form[key]} onChange={e => set(key, e.target.value)} style={inp}>
+                {opts.map(([v,l]) => <option key={v} value={v}>{l}</option>)}
+              </select>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div>
+            <label style={lbl}>Due date</label>
+            <input type="date" value={form.due} onChange={e => set("due", e.target.value)} style={inp} />
+          </div>
+          <div>
+            <label style={lbl}>Jira ticket</label>
+            <input value={form.jira} onChange={e => set("jira", e.target.value)} placeholder="JP-###" style={{ ...inp, fontFamily: "'DM Mono', monospace" }} />
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 8, marginTop: 20, justifyContent: "flex-end" }}>
+          <button onClick={onClose} style={{ padding: "8px 18px", border: "1px solid #e0e0e0", borderRadius: 8, background: "#fff", fontSize: 13, color: "#666" }}>Cancel</button>
+          <button onClick={() => { if (form.title.trim()) onSave(form); }}
+            style={{ padding: "8px 20px", background: "#1D9E75", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 500 }}>
+            {modal.mode === "edit" ? "Save changes" : "Create task"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const lbl = { display: "block", fontSize: 11, fontWeight: 600, color: "#aaa", textTransform: "uppercase", letterSpacing: ".04em", marginBottom: 4, marginTop: 12 };
+const inp = { width: "100%", padding: "8px 10px", fontSize: 13, border: "1px solid #e0e0e0", borderRadius: 8, background: "#fafafa", color: "#1a1a1a" };
+
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
 </script>
 </body>
 </html>
