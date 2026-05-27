@@ -1028,11 +1028,11 @@ async function syncToDo() {
 
 async function ensureTodoToken() {
   // Try cached token first
-  const cached = load(TODO_SK_TOKEN, null);
+  try { const cached = JSON.parse(localStorage.getItem(TODO_SK_TOKEN));
   if(cached && cached.expires > Date.now()) {
     todoAccessToken = cached.token;
     return;
-  }
+  }} catch(e) {}
   // Use device code flow — opens login popup
   const dcRes = await fetch(`https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/devicecode`, {
     method: "POST",
@@ -1058,7 +1058,7 @@ async function ensureTodoToken() {
     const tokenData = await tokenRes.json();
     if(tokenData.access_token) {
       todoAccessToken = tokenData.access_token;
-      save(TODO_SK_TOKEN, { token: tokenData.access_token, expires: Date.now() + (tokenData.expires_in - 60) * 1000 });
+      try { localStorage.setItem(TODO_SK_TOKEN, JSON.stringify({ token: tokenData.access_token, expires: Date.now() + (tokenData.expires_in - 60) * 1000 })); } catch(e) {}
       return;
     }
     if(tokenData.error && tokenData.error !== "authorization_pending") {
@@ -1070,8 +1070,7 @@ async function ensureTodoToken() {
 
 async function ensureTodoListId() {
   // Check cache
-  const cached = load(TODO_SK_LIST, null);
-  if(cached) { todoListId = cached; return; }
+  try { const cached = localStorage.getItem(TODO_SK_LIST); if(cached) { todoListId = cached; return; } } catch(e) {}
 
   // Fetch all To Do lists
   const res = await fetch("https://graph.microsoft.com/v1.0/me/todo/lists", {
@@ -1087,7 +1086,7 @@ async function ensureTodoListId() {
   if(!list) throw new Error("No To Do list found");
 
   todoListId = list.id;
-  save(TODO_SK_LIST, list.id);
+  try { localStorage.setItem(TODO_SK_LIST, list.id); } catch(e) {}
 }
 
 async function pullTodoTasks() {
@@ -1152,3 +1151,4 @@ if(FIREBASE_NOT_CONFIGURED){
 </script>
 </body>
 </html>
+
